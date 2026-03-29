@@ -1,71 +1,98 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-Hant">
 <head>
-    <title>Firebase 登入範例</title>
-    <!-- 載入 Firebase SDK (模組化版本) -->
-    <script type="importmap">
-        {
-          "imports": {
-            "firebase/app": "https://www.gstatic.com",
-            "firebase/auth": "https://www.gstatic.com"
-          }
-        }
-    </script>
+    <meta charset="UTF-8">
+    <title>裝備庫存管理</title>
 </head>
 <body>
-    <h1>我的動態網站</h1>
-    <div id="user-info">
-        <button id="login-btn">使用 Google 登入</button>
+    <h1>🛡️ 裝備庫存系統</h1>
+
+    <!-- 登入區塊 -->
+    <div id="auth-section">
+        <button id="login-btn">Google 登入</button>
+    </div>
+
+    <!-- 管理區塊 (預設隱藏) -->
+    <div id="admin-section" style="display:none;">
+        <h3>新增裝備</h3>
+        <input type="text" id="itemName" placeholder="裝備名稱">
+        <input type="number" id="itemQty" placeholder="數量">
+        <button id="add-btn">入庫</button>
+        <hr>
+        <ul id="inventory-list"></ul>
     </div>
 
     <script type="module">
-    import { initializeApp } from "firebase/app";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "firebase/auth";
+        import { initializeApp } from "https://www.gstatic.com";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com";
 
-    // 這裡貼上你在 Firebase 控制台取得的專案配置 (Firebase Config)
-    const firebaseConfig = {
-      apiKey: "你的API_KEY",
-      authDomain: "你的專案.firebaseapp.com",
-      projectId: "你的專案ID",
-      storageBucket: "你的專案.appspot.com",
-      messagingSenderId: "你的發送ID",
-      appId: "你的APP_ID"
-    };
+        // 1. 你的 Firebase 配置 (從 Console 複製)
+        const firebaseConfig = {
+            apiKey: "你的...",
+            authDomain: "你的...",
+            projectId: "你的..."
+        };
 
-    // 初始化 Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth();
-    const provider = new GoogleAuthProvider();
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+        const provider = new GoogleAuthProvider();
 
-    const btn = document.getElementById('login-btn');
-    const userInfo = document.getElementById('user-info');
+        // 2. 登入邏輯
+        document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
 
-    // 1. 處理登入按鈕點擊
-    btn.onclick = async () => {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        console.error("登入失敗", error);
-      }
-    };
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById('auth-section').style.display = 'none';
+                document.getElementById('admin-section').style.display = 'block';
+                監聽庫存(); // 登入後才開始讀資料
+            }
+        });
 
-    // 2. 監聽登入狀態變化 (這就是動態效果！)
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        // 登入成功：顯示使用者名字與登出按鈕
-        userInfo.innerHTML = `
-          <p>你好，${user.displayName}！</p>
-          <img src="${user.photoURL}" width="50">
-          <button id="logout-btn">登出</button>
-        `;
-        document.getElementById('logout-btn').onclick = () => signOut(auth);
-      } else {
-        // 未登入：回到初始狀態
-        userInfo.innerHTML = `<button id="login-btn">使用 Google 登入</button>`;
-        // 重新綁定事件，因為 DOM 被重刷了
-        location.reload();
-      }
-    });
+        // 3. 讀取資料 (即時更新，像 LINE 一樣不用重整)
+        function 監聽庫存() {
+            onSnapshot(collection(db, "items"), (snapshot) => {
+                const list = document.getElementById('inventory-list');
+                list.innerHTML = "";
+                snapshot.forEach((item) => {
+                    const data = item.data();
+                    list.innerHTML += `
+                            <li>
+                                ${data.name}: <b>${data.qty}</b>
+                                <button onclick="修改庫存('${item.id}', ${data.qty + 1})">+</button>
+                                <button onclick="修改庫存('${item.id}', ${data.qty - 1})">-</button>
+                                <button onclick="刪除裝備('${item.id}')">刪除</button>
+                            </li>`;
+                });
+            });
+        }
+
+        // 4. 新增資料
+        document.getElementById('add-btn').onclick = async () => {
+            const name = document.getElementById('itemName').value;
+            const qty = parseInt(document.getElementById('itemQty').value);
+            await addDoc(collection(db, "items"), { name, qty });
+            alert("新增成功");
+        };
+
+        // 5. 修改與刪除 (掛載到全域讓 HTML button 點得到)
+        window.修改庫存 = (id, newQty) => updateDoc(doc(db, "items", id), { qty: newQty });
+        window.刪除裝備 = (id) => { if (confirm("確定刪除？")) deleteDoc(doc(db, "items", id)); };
+
     </script>
 </body>
 </html>
+請謹慎使用程式碼。
+
+3. 最關鍵的一步：安全性規則 (Security Rules)
+在 PHP 中，你會寫 if(!$_SESSION['user']) die();。在 Firebase，請到 Firestore > Rules 分頁，改成以下規則：
+javascript
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /items/{itemId} {
+      // 只有登入的人才能讀、寫、改、刪
+      allow read, write: if request.auth != null;
+    }
+  }
+}
