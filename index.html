@@ -1,85 +1,49 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>裝備庫存管理</title>
+    <title>Firebase 連線測試</title>
 </head>
 <body>
-    <h1>🛡️ 裝備庫存系統</h1>
-
-    <!-- 登入區塊 -->
-    <div id="auth-section">
-        <button id="login-btn">Google 登入</button>
-    </div>
-
-    <!-- 管理區塊 (預設隱藏) -->
-    <div id="admin-section" style="display:none;">
-        <h3>新增裝備</h3>
-        <input type="text" id="itemName" placeholder="裝備名稱">
-        <input type="number" id="itemQty" placeholder="數量">
-        <button id="add-btn">入庫</button>
-        <hr>
-        <ul id="inventory-list"></ul>
-    </div>
+    <h1>Firebase 連線測試</h1>
+    <p>請按 F12 觀察 Console 訊息</p>
+    <div id="status">正在嘗試連線...</div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com";
 
-        // 1. 你的 Firebase 配置 (從 Console 複製)
+        // 1. 【請替換這裡】貼上你的 Firebase Config
         const firebaseConfig = {
-            apiKey: "你的...",
-            authDomain: "你的...",
-            projectId: "你的..."
+            apiKey: "AIzaSyAX12aOwkhf_C3MqsIonnmhg69W1UZRgHE",
+            authDomain: "yusheland.firebaseapp.com",
+            projectId: "yusheland",
+            storageBucket: "yusheland.firebasestorage.app",
+            messagingSenderId: "199797086046",
+            appId: "1:199797086046:web:1f4b823d2a31ddc730a1cf",
+            measurementId: "G-X733MEWBW1"
         };
 
+        // 2. 初始化
         const app = initializeApp(firebaseConfig);
-        const auth = getAuth();
-        const db = getFirestore();
-        const provider = new GoogleAuthProvider();
+        const db = getFirestore(app);
 
-        // 2. 登入邏輯
-        document.getElementById('login-btn').onclick = () => signInWithPopup(auth, provider);
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('auth-section').style.display = 'none';
-                document.getElementById('admin-section').style.display = 'block';
-                監聽庫存(); // 登入後才開始讀資料
-            }
-        });
-
-        // 3. 讀取資料 (即時更新，像 LINE 一樣不用重整)
-        function 監聽庫存() {
-            onSnapshot(collection(db, "items"), (snapshot) => {
-                const list = document.getElementById('inventory-list');
-                list.innerHTML = "";
-                snapshot.forEach((item) => {
-                    const data = item.data();
-                    list.innerHTML += `
-                            <li>
-                                ${data.name}: <b>${data.qty}</b>
-                                <button onclick="修改庫存('${item.id}', ${data.qty + 1})">+</button>
-                                <button onclick="修改庫存('${item.id}', ${data.qty - 1})">-</button>
-                                <button onclick="刪除裝備('${item.id}')">刪除</button>
-                            </li>`;
+        // 3. 測試寫入一筆資料 (就像 PHP 的 INSERT)
+        async function testFirebase() {
+            try {
+                const docRef = await addDoc(collection(db, "test_collection"), {
+                    message: "恭喜！Firebase 連線並寫入成功！",
+                    time: new Date()
                 });
-            });
+                console.log("寫入成功，文件 ID: ", docRef.id);
+                document.getElementById('status').innerHTML = "✅ 連線與寫入成功！請去 Firebase 後台看 Data 分頁。";
+            } catch (e) {
+                console.error("錯誤訊息: ", e);
+                document.getElementById('status').innerHTML = "❌ 失敗！錯誤原因請看 Console。";
+            }
         }
 
-        // 4. 新增資料
-        document.getElementById('add-btn').onclick = async () => {
-            const name = document.getElementById('itemName').value;
-            const qty = parseInt(document.getElementById('itemQty').value);
-            await addDoc(collection(db, "items"), { name, qty });
-            alert("新增成功");
-        };
-
-        // 5. 修改與刪除 (掛載到全域讓 HTML button 點得到)
-        window.修改庫存 = (id, newQty) => updateDoc(doc(db, "items", id), { qty: newQty });
-        window.刪除裝備 = (id) => { if (confirm("確定刪除？")) deleteDoc(doc(db, "items", id)); };
-
+        testFirebase();
     </script>
 </body>
 </html>
