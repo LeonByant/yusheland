@@ -35,9 +35,12 @@
     <div id="inventoryList">正在載入中...</div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         // 這裡多引入了 onSnapshot (監聽) 和 collection (集合)
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+   
+
 
         // 【請貼上你原本成功的 Config】
         const firebaseConfig = {
