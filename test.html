@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>裝備庫存管理</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .item-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛡️ 裝備庫存系統</h1>
+
+    <!-- 1. 輸入區塊 (像 PHP 的 Form，但不用指定 action) -->
+    <div style="background: #f4f4f4; padding: 15px;">
+        <input type="text" id="itemName" placeholder="裝備名稱 (如: 木劍)">
+        <input type="number" id="itemQty" placeholder="數量" value="1">
+        <button id="saveBtn">新增裝備</button>
+    </div>
+
+    <hr>
+
+    <!-- 2. 顯示區塊 (原本 PHP 用 foreach 印出的地方) -->
+    <h3>目前庫存清單：</h3>
+    <div id="inventoryList">正在載入中...</div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com";
+        // 這裡多引入了 onSnapshot (監聽) 和 collection (集合)
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com";
+
+        // 【請貼上你原本成功的 Config】
+        const firebaseConfig = {
+            apiKey: "AIzaSyAX12aOwkhf_C3MqsIonnmhg69W1UZRgHE",
+            authDomain: "yusheland.firebaseapp.com",
+            projectId: "yusheland",
+            storageBucket: "yusheland.firebasestorage.app",
+            messagingSenderId: "199797086046",
+            appId: "1:199797086046:web:1f4b823d2a31ddc730a1cf",
+            measurementId: "G-X733MEWBW1"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- A. 讀取資料 (像 PHP 的 SELECT，但這是「即時監聽」版本) ---
+        // 只要資料庫一變，這段程式碼會自動重新執行，網頁不用重整！
+        const q = query(collection(db, "items"), orderBy("time", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const listDiv = document.getElementById('inventoryList');
+            listDiv.innerHTML = ""; // 先清空舊內容
+
+            snapshot.forEach((doc) => {
+                const data = doc.data();
+                listDiv.innerHTML += `
+                    <div class="item-card">
+                        <span><b>${data.name}</b></span>
+                        <span>數量: ${data.qty}</span>
+                    </div>
+                `;
+            });
+            if(snapshot.empty) listDiv.innerHTML = "目前沒有裝備。";
+        });
+
+        // --- B. 新增資料 (像 PHP 的 INSERT) ---
+        document.getElementById('saveBtn').onclick = async () => {
+            const name = document.getElementById('itemName').value;
+            const qty = document.getElementById('itemQty').value;
+
+            if(!name) return alert("請輸入名稱");
+
+            try {
+                await addDoc(collection(db, "items"), {
+                    name: name,
+                    qty: parseInt(qty),
+                    time: new Date()
+                });
+                // 清空輸入框
+                document.getElementById('itemName').value = "";
+                document.getElementById('itemQty').value = "1";
+            } catch (e) {
+                alert("儲存失敗：" + e);
+            }
+        };</script>
+</body>
+</html>
