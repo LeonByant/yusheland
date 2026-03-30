@@ -82,48 +82,51 @@
             }
 
 
-            // --- 1. 修改資料 (Update) ---
-            // 就像 PHP 的 UPDATE items SET qty = $newQty WHERE id = $id
-            window.changeQty = async (id, currentQty, change) => {
-                const newQty = currentQty + change;
-                if (newQty < 0) return; // 不允許負數庫存
 
-                const itemRef = doc(db, "items", id); // 找到那筆資料
-                try {
-                    await updateDoc(itemRef, { qty: newQty });
-                    console.log("修改成功！");
-                    // 因為有 onSnapshot，網頁會自動更新，不用手動刷畫面！
-                } catch (e) {
-                    alert("更新失敗：" + e);
-                }
-            };
+        };
 
-            // --- 2. 刪除資料 (Delete) ---
-            // 針對該 ID 進行刪除
-            window.removeItem = async (id) => {
-                if (!confirm("確定要變賣這件裝備嗎？")) return;
+        // --- 1. 修改資料 (Update) ---
+        // 就像 PHP 的 UPDATE items SET qty = $newQty WHERE id = $id
+        window.changeQty = async (id, currentQty, change) => {
+            const newQty = currentQty + change;
+            if (newQty < 0) return; // 不允許負數庫存
 
-                const itemRef = doc(db, "items", id);
-                try {
-                    await deleteDoc(itemRef);
-                    console.log("刪除成功！");
-                } catch (e) {
-                    alert("刪除失敗");
-                }
-            };
+            const itemRef = doc(db, "items", id); // 找到那筆資料
+            try {
+                await updateDoc(itemRef, { qty: newQty });
+                console.log("修改成功！");
+                // 因為有 onSnapshot，網頁會自動更新，不用手動刷畫面！
+            } catch (e) {
+                alert("更新失敗：" + e);
+            }
+        };
 
-            const q = query(collection(db, "items"), orderBy("time", "desc"));
-            // --- 3. 修改顯示邏輯 (更新 onSnapshot 裡面的 HTML) ---
-            // 請找到你原本的 snapshot.forEach 部分，改成這樣：
-            onSnapshot(q, (snapshot) => {
-                const listDiv = document.getElementById('inventoryList');
-                listDiv.innerHTML = "";
+        // --- 2. 刪除資料 (Delete) ---
+        // 針對該 ID 進行刪除
+        window.removeItem = async (id) => {
+            if (!confirm("確定要變賣這件裝備嗎？")) return;
 
-                snapshot.forEach((item) => {
-                    const data = item.data();
-                    const id = item.id; // 這是 Firebase 自動產生的亂碼 ID (像 MySQL 的 Primary Key)
+            const itemRef = doc(db, "items", id);
+            try {
+                await deleteDoc(itemRef);
+                console.log("刪除成功！");
+            } catch (e) {
+                alert("刪除失敗");
+            }
+        };
 
-                    listDiv.innerHTML += `
+        const q = query(collection(db, "items"), orderBy("time", "desc"));
+        // --- 3. 修改顯示邏輯 (更新 onSnapshot 裡面的 HTML) ---
+        // 請找到你原本的 snapshot.forEach 部分，改成這樣：
+        onSnapshot(q, (snapshot) => {
+            const listDiv = document.getElementById('inventoryList');
+            listDiv.innerHTML = "";
+
+            snapshot.forEach((item) => {
+                const data = item.data();
+                const id = item.id; // 這是 Firebase 自動產生的亂碼 ID (像 MySQL 的 Primary Key)
+
+                listDiv.innerHTML += `
      <div class="item-card" style="border:1px solid #ccc; margin:5px; padding:10px; display:flex; justify-content:space-between;">
          <span><b>${data.name}</b> (數量: ${data.qty})</span>
          <div>
@@ -133,10 +136,8 @@
          </div>
      </div>
  `;
-                });
             });
-
-
-        };</script>
+        });
+        </script>
 </body>
 </html>
