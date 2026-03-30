@@ -38,7 +38,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         // 這裡多引入了 onSnapshot (監聽) 和 collection (集合)
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-
+        // 引入需要的修改與刪除功能
+        import { doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
    
 
 
@@ -59,20 +60,27 @@
         // --- A. 讀取資料 (像 PHP 的 SELECT，但這是「即時監聽」版本) ---
         // 只要資料庫一變，這段程式碼會自動重新執行，網頁不用重整！
         const q = query(collection(db, "items"), orderBy("time", "desc"));
+        // --- 3. 修改顯示邏輯 (更新 onSnapshot 裡面的 HTML) ---
+        // 請找到你原本的 snapshot.forEach 部分，改成這樣：
         onSnapshot(q, (snapshot) => {
             const listDiv = document.getElementById('inventoryList');
-            listDiv.innerHTML = ""; // 先清空舊內容
+            listDiv.innerHTML = "";
 
-            snapshot.forEach((doc) => {
-                const data = doc.data();
+            snapshot.forEach((item) => {
+                const data = item.data();
+                const id = item.id; // 這是 Firebase 自動產生的亂碼 ID (像 MySQL 的 Primary Key)
+
                 listDiv.innerHTML += `
-                    <div class="item-card">
-                        <span><b>${data.name}</b></span>
-                        <span>數量: ${data.qty}</span>
-                    </div>
-                `;
+            <div class="item-card" style="border:1px solid #ccc; margin:5px; padding:10px; display:flex; justify-content:space-between;">
+                <span><b>${data.name}</b> (數量: ${data.qty})</span>
+                <div>
+                    <button onclick="changeQty('${id}', ${data.qty}, 1)">＋</button>
+                    <button onclick="changeQty('${id}', ${data.qty}, -1)">－</button>
+                    <button onclick="removeItem('${id}')" style="color:red; margin-left:10px;">刪除</button>
+                </div>
+            </div>
+        `;
             });
-            if(snapshot.empty) listDiv.innerHTML = "目前沒有裝備。";
         });
 
         // --- B. 新增資料 (像 PHP 的 INSERT) ---
@@ -94,6 +102,39 @@
             } catch (e) {
                 alert("儲存失敗：" + e);
             }
+
+
+            // --- 1. 修改資料 (Update) ---
+            // 就像 PHP 的 UPDATE items SET qty = $newQty WHERE id = $id
+            window.changeQty = async (id, currentQty, change) => {
+                const newQty = currentQty + change;
+                if (newQty < 0) return; // 不允許負數庫存
+
+                const itemRef = doc(db, "items", id); // 找到那筆資料
+                try {
+                    await updateDoc(itemRef, { qty: newQty });
+                    // 因為有 onSnapshot，網頁會自動更新，不用手動刷畫面！
+                } catch (e) {
+                    alert("更新失敗：" + e);
+                }
+            };
+
+            // --- 2. 刪除資料 (Delete) ---
+            // 針對該 ID 進行刪除
+            window.removeItem = async (id) => {
+                if (!confirm("確定要變賣這件裝備嗎？")) return;
+
+                const itemRef = doc(db, "items", id);
+                try {
+                    await deleteDoc(itemRef);
+                } catch (e) {
+                    alert("刪除失敗");
+                }
+            };
+
+
+
+
         };</script>
 </body>
 </html>
