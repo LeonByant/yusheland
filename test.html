@@ -63,25 +63,24 @@
 
         // --- B. 新增資料 (像 PHP 的 INSERT) ---
         document.getElementById('saveBtn').onclick = async () => {
+            const sn = document.getElementById('itemSN').value; // 新增流水號欄位
             const name = document.getElementById('itemName').value;
-            const qty = document.getElementById('itemQty').value;
+            const total = parseInt(document.getElementById('itemTotal').value);
+            const holder = document.getElementById('itemHolder').value; // 新增保管人欄位
 
-            if(!name) return alert("請輸入名稱");
+            if (!name || !sn) return alert("請輸入流水號與名稱");
 
             try {
                 await addDoc(collection(db, "items"), {
+                    sn: sn,
                     name: name,
-                    qty: parseInt(qty),
+                    totalQty: total,
+                    currentQty: total, // 初始時剩餘量等於總量
+                    holder: holder || "倉庫", // 如果沒寫就是倉庫
                     time: new Date()
                 });
-                // 清空輸入框
-                document.getElementById('itemName').value = "";
-                document.getElementById('itemQty').value = "1";
-            } catch (e) {
-                alert("儲存失敗：" + e);
-            }
-
-
+                // 清空欄位...
+            } catch (e) { alert("儲存失敗"); }
 
         };
 
@@ -124,20 +123,34 @@
 
             snapshot.forEach((item) => {
                 const data = item.data();
-                const id = item.id; // 這是 Firebase 自動產生的亂碼 ID (像 MySQL 的 Primary Key)
+                const id = item.id;
+
+                // 計算百分比或狀態
+                const statusColor = data.currentQty === 0 ? "red" : "green";
 
                 listDiv.innerHTML += `
-     <div class="item-card" style="border:1px solid #ccc; margin:5px; padding:10px; display:flex; justify-content:space-between;">
-         <span><b>${data.name}</b> (數量: ${data.qty})</span>
-         <div>
-             <button onclick="changeQty('${id}', ${data.qty}, 1)">＋</button>
-             <button onclick="changeQty('${id}', ${data.qty}, -1)">－</button>
-             <button onclick="removeItem('${id}')" style="color:red; margin-left:10px;">刪除</button>
-         </div>
-     </div>
+        <div class="item-card" style="display:block; line-height:1.6;">
+            <div style="display:flex; justify-content:space-between;">
+                <small style="color:#888;">#${data.sn}</small>
+                <b style="color:${statusColor}">${data.currentQty} / ${data.totalQty}</b>
+            </div>
+            <div style="font-size:18px; margin:5px 0;"><b>${data.name}</b></div>
+            <div style="font-size:14px; color:#555;">
+                📍 目前持有者：<span style="color:var(--primary)">${data.holder}</span>
+            </div>
+            <hr style="border:0.5px solid #eee; margin:10px 0;">
+            <div class="btn-group" style="justify-content:flex-end;">
+                <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, -1)">-</button>
+                <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, 1)">+</button>
+                <button class="delete-btn" onclick="removeItem('${id}')">報廢</button>
+            </div>
+        </div>`;
  `;
             });
         });
+
+
+
         </script>
 </body>
 </html>
