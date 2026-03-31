@@ -35,13 +35,10 @@
     <div id="inventoryList">正在載入中...</div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        // 這裡多引入了 onSnapshot (監聽) 和 collection (集合)
-        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-        // 引入需要的修改與刪除功能
-        import { doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        
    
-
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 
         // 【請貼上你原本成功的 Config】
         const firebaseConfig = {
@@ -57,100 +54,75 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- A. 讀取資料 (像 PHP 的 SELECT，但這是「即時監聽」版本) ---
-        // 只要資料庫一變，這段程式碼會自動重新執行，網頁不用重整！
-       
+        window.changeQty = async (id, currentQty, change) => {
+            const newQty = currentQty + change;
+            if (newQty < 0) return;
+            try {
+                await updateDoc(doc(db, "items", id), { currentQty: newQty });
+            } catch (e) { console.error(e); }
+        };
 
-        // --- B. 新增資料 (像 PHP 的 INSERT) ---
+        // --- 報廢(刪除)功能 ---
+        window.removeItem = async (id) => {
+            if (!confirm("確定要報廢這件裝備嗎？")) return;
+            try {
+                await deleteDoc(doc(db, "items", id));
+            } catch (e) { console.error(e); }
+        };
+
+        // --- 監聽並畫出畫面 ---
+        const q = query(collection(db, "items"), orderBy("time", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const listDiv = document.getElementById('inventoryList');
+            listDiv.innerHTML = "";
+            snapshot.forEach((item) => {
+                const data = item.data();
+                const id = item.id;
+                listDiv.innerHTML += `
+                <div class="item-card" style="background:white; border-radius:12px; padding:15px; margin-bottom:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#888;">
+                        <span>SN: ${data.sn || '無'}</span>
+                        <span>保管人: <b style="color:#4a90e2">${data.holder || '倉庫'}</b></span>
+                    </div>
+                    <div style="margin:10px 0; font-size:18px;"><b>${data.name}</b></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:14px;">庫存：<b>${data.currentQty}</b> / ${data.totalQty}</span>
+                        <div>
+                            <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, -1)">-</button>
+                            <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, 1)">+</button>
+                            <button onclick="removeItem('${id}')" style="margin-left:10px; color:red; border:none; background:none; cursor:pointer;">報廢</button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            if (snapshot.empty) listDiv.innerHTML = "目前沒有裝備造冊。";
+        });
+
+        // --- 新增按鈕 ---
         document.getElementById('saveBtn').onclick = async () => {
-            const sn = document.getElementById('itemSN').value; // 新增流水號欄位
+            const sn = document.getElementById('itemSN').value;
             const name = document.getElementById('itemName').value;
-            const total = parseInt(document.getElementById('itemTotal').value);
-            const holder = document.getElementById('itemHolder').value; // 新增保管人欄位
+            const total = parseInt(document.getElementById('itemTotal').value) || 0;
+            const holder = document.getElementById('itemHolder').value || "倉庫";
 
-            if (!name || !sn) return alert("請輸入流水號與名稱");
+            if (!name || !sn) return alert("請輸入流水號與裝備名稱");
 
             try {
                 await addDoc(collection(db, "items"), {
                     sn: sn,
                     name: name,
                     totalQty: total,
-                    currentQty: total, // 初始時剩餘量等於總量
-                    holder: holder || "倉庫", // 如果沒寫就是倉庫
+                    currentQty: total,
+                    holder: holder,
                     time: new Date()
                 });
-                // 清空欄位...
+                // 清空欄位
+                document.getElementById('itemSN').value = "";
+                document.getElementById('itemName').value = "";
+                document.getElementById('itemTotal').value = "1";
+                document.getElementById('itemHolder').value = "";
             } catch (e) { alert("儲存失敗"); }
-
         };
-
-        // --- 1. 修改資料 (Update) ---
-        // 就像 PHP 的 UPDATE items SET qty = $newQty WHERE id = $id
-        window.changeQty = async (id, currentQty, change) => {
-            const newQty = currentQty + change;
-            if (newQty < 0) return; // 不允許負數庫存
-
-            const itemRef = doc(db, "items", id); // 找到那筆資料
-            try {
-                await updateDoc(itemRef, { qty: newQty });
-                console.log("修改成功！");
-                // 因為有 onSnapshot，網頁會自動更新，不用手動刷畫面！
-            } catch (e) {
-                alert("更新失敗：" + e);
-            }
-        };
-
-        // --- 2. 刪除資料 (Delete) ---
-        // 針對該 ID 進行刪除
-        window.removeItem = async (id) => {
-            if (!confirm("確定要變賣這件裝備嗎？")) return;
-
-            const itemRef = doc(db, "items", id);
-            try {
-                await deleteDoc(itemRef);
-                console.log("刪除成功！");
-            } catch (e) {
-                alert("刪除失敗");
-            }
-        };
-
-        const q = query(collection(db, "items"), orderBy("time", "desc"));
-        // --- 3. 修改顯示邏輯 (更新 onSnapshot 裡面的 HTML) ---
-        // 請找到你原本的 snapshot.forEach 部分，改成這樣：
-        onSnapshot(q, (snapshot) => {
-            const listDiv = document.getElementById('inventoryList');
-            listDiv.innerHTML = "";
-
-            snapshot.forEach((item) => {
-                const data = item.data();
-                const id = item.id;
-
-                // 計算百分比或狀態
-                const statusColor = data.currentQty === 0 ? "red" : "green";
-
-                listDiv.innerHTML += `
-        <div class="item-card" style="display:block; line-height:1.6;">
-            <div style="display:flex; justify-content:space-between;">
-                <small style="color:#888;">#${data.sn}</small>
-                <b style="color:${statusColor}">${data.currentQty} / ${data.totalQty}</b>
-            </div>
-            <div style="font-size:18px; margin:5px 0;"><b>${data.name}</b></div>
-            <div style="font-size:14px; color:#555;">
-                📍 目前持有者：<span style="color:var(--primary)">${data.holder}</span>
-            </div>
-            <hr style="border:0.5px solid #eee; margin:10px 0;">
-            <div class="btn-group" style="justify-content:flex-end;">
-                <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, -1)">-</button>
-                <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, 1)">+</button>
-                <button class="delete-btn" onclick="removeItem('${id}')">報廢</button>
-            </div>
-        </div>`;
- `;
-            });
-        });
-
-
-
         </script>
 </body>
 </html>
