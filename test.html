@@ -23,8 +23,10 @@
 
     <!-- 1. 輸入區塊 (像 PHP 的 Form，但不用指定 action) -->
     <div style="background: #f4f4f4; padding: 15px;">
-        <input type="text" id="itemName" placeholder="裝備名稱 (如: 木劍)">
-        <input type="number" id="itemQty" placeholder="數量" value="1">
+        <input type="text" id="itemSN">       <!-- 流水號 -->
+        <input type="text" id="itemName">     <!-- 裝備名稱 -->
+        <input type="number" id="itemTotal">  <!-- 總庫存量 -->
+        <input type="text" id="itemHolder">   <!-- 保管人 -->
         <button id="saveBtn">新增裝備</button>
     </div>
 
