@@ -1,74 +1,158 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>義消裝備風險管理系統 - 專業進階版</title>
+    <title>裝備風險管理系統 | 專業版</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
     <style>
-        body {
-            background-color: #f4f7f6;
-            font-family: "Microsoft JhengHei", sans-serif;
+        :root {
+            --primary-bg: #f8f9fc;
+            --card-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.05);
+            --header-bg: #1e293b; /* 深岩灰 */
+        }
+        
+        body { 
+            background-color: var(--primary-bg); 
+            font-family: 'Noto Sans TC', sans-serif; 
+            color: #334155;
         }
 
-        .table-responsive {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        /* 頂部導航與標題 */
+        .app-header {
+            background: var(--header-bg);
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        .expired-row {
-            background-color: #ffe5e5 !important;
+        /* 卡片與區塊優化 */
+        .card {
+            border: none;
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .card-header {
+            background-color: #f1f5f9;
+            border-bottom: 1px solid #e2e8f0;
+            color: #0f172a;
+            font-weight: 700;
+            padding: 1rem 1.5rem;
         }
 
-        .warning-row {
-            background-color: #fff8e1 !important;
+        /* 表格優化 */
+        .table-responsive { 
+            background: white; 
+            border-radius: 16px; 
+            box-shadow: var(--card-shadow); 
+            padding: 0.5rem;
         }
-
-        th {
+        .table { margin-bottom: 0; }
+        .table > :not(caption) > * > * {
+            padding: 1rem 0.75rem;
+            border-bottom-color: #f1f5f9;
+            vertical-align: middle;
+        }
+        .table-dark {
+            background-color: #334155;
+            color: white;
+            border-radius: 8px;
+        }
+        .table-dark th {
+            background-color: #334155;
+            border-color: #475569;
+            font-weight: 500;
             cursor: pointer;
             user-select: none;
             white-space: nowrap;
         }
+        .table-dark th:hover { background-color: #475569; }
+        .table-hover tbody tr:hover { background-color: #f8fafc; }
+        
+        /* 狀態標籤優化 */
+        .badge {
+            padding: 0.5em 0.75em;
+            font-weight: 500;
+            border-radius: 50rem; /* 膠囊狀 */
+            letter-spacing: 0.5px;
+        }
+        .badge-team { background-color: #10b981; color: white; } /* 翡翠綠 */
+        .badge-personal { background-color: #f59e0b; color: white; } /* 琥珀黃 */
+        
+        /* 風險警示列 */
+        .expired-row { background-color: #fef2f2 !important; } 
+        .expired-row td { color: #991b1b; }
+        .warning-row { background-color: #fffbeb !important; } 
 
-            th:hover {
-                background-color: #495057 !important;
-            }
-
-        .sort-icon {
-            font-size: 0.8em;
-            margin-left: 5px;
+        /* 表單輸入框優化 */
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            padding: 0.6rem 1rem;
+            font-size: 0.95rem;
+        }
+        .form-control:focus, .form-select:focus {
+            border-color: #94a3b8;
+            box-shadow: 0 0 0 0.25rem rgba(148, 163, 184, 0.25);
+        }
+        .form-label {
+            font-weight: 500;
+            color: #64748b;
+            margin-bottom: 0.4rem;
         }
 
-        .card-header {
-            font-size: 1.1rem;
+        /* 按鈕優化 */
+        .btn {
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            transition: all 0.2s;
         }
+        .btn-primary { background-color: #2563eb; border-color: #2563eb; }
+        .btn-primary:hover { background-color: #1d4ed8; border-color: #1d4ed8; }
+        .btn-success { background-color: #059669; border-color: #059669; }
+        .btn-success:hover { background-color: #047857; border-color: #047857; }
+        .sort-icon { font-size: 0.75em; opacity: 0.5; margin-left: 4px; }
     </style>
 </head>
 <body>
-    <div class="container mt-4 mb-5">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="h4 mb-0 text-primary fw-bold">🛡️ 裝備風險管理系統 <small class="text-muted fs-6">v3.0</small></h2>
-            <button id="authBtn" class="btn btn-sm btn-outline-primary shadow-sm">管理員登入</button>
+
+    <header class="app-header">
+        <div class="container d-flex justify-content-between align-items-center">
+            <h1 class="h4 mb-0 fw-bold"><i class="bi bi-shield-check me-2 text-info"></i>裝備風險管理系統</h1>
+            <button id="authBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-person-circle me-1"></i>系統登入</button>
+        </div>
+    </header>
+
+    <div class="container mb-5">
+        <div id="userInfoAlert" class="alert alert-light border shadow-sm py-2 mb-4 rounded-pill" style="display: none; width: fit-content;">
+            <i class="bi bi-info-circle-fill text-primary me-2"></i>目前權限狀態：<strong id="userRoleText" class="text-dark">載入中...</strong>
         </div>
 
-        <div id="adminPanel" class="card mb-4 border-0 shadow-sm" style="display: none;">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                <span>➕ 批次裝備入庫</span>
+        <div id="adminPanel" class="card mb-4" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-box-seam me-2"></i>批次裝備入庫</span>
+                <span class="badge bg-secondary"><i class="bi bi-upc-scan me-1"></i>自動生成序號</span>
             </div>
-            <div class="card-body">
-                <div class="row g-2 mb-3">
+            <div class="card-body bg-white p-4">
+                <div class="row g-3 mb-3">
                     <div class="col-md-2">
                         <label class="form-label small">類別代碼</label>
                         <input type="text" id="itemPrefix" class="form-control" placeholder="如: R">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small">起始數字</label>
+                        <label class="form-label small">起始序號</label>
                         <input type="number" id="itemStartNum" class="form-control" placeholder="如: 1" min="1">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small">入庫數量</label>
-                        <input type="number" id="itemBatchCount" class="form-control" placeholder="件數" min="1" value="1">
+                        <label class="form-label small">入庫件數</label>
+                        <input type="number" id="itemBatchCount" class="form-control" placeholder="總數" min="1" value="1">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small">裝備全名</label>
@@ -76,13 +160,14 @@
                     </div>
                     <div class="col-md-3">
                         <label class="form-label small">供應商 / 備註</label>
-                        <input type="text" id="itemNote" class="form-control" placeholder="廠商名稱或購買計畫">
+                        <input type="text" id="itemNote" class="form-control" placeholder="採購計畫或備註">
                     </div>
                 </div>
-                <div class="row g-2">
+                <hr class="text-muted opacity-25">
+                <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label small">歸屬狀態</label>
-                        <select id="itemStatus" class="form-control">
+                        <select id="itemStatus" class="form-select">
                             <option value="隊上">存放隊上</option>
                             <option value="個人">個人領用</option>
                         </select>
@@ -92,15 +177,15 @@
                         <input type="text" id="itemHolder" class="form-control" placeholder="姓名或車廂">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-info fw-bold">保固到期日</label>
+                        <label class="form-label small text-info fw-bold"><i class="bi bi-wrench me-1"></i>保固到期日</label>
                         <input type="date" id="itemWarranty" class="form-control">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-danger fw-bold">絕對失效日 (年限)</label>
+                        <label class="form-label small text-danger fw-bold"><i class="bi bi-hourglass-bottom me-1"></i>絕對失效日</label>
                         <input type="date" id="itemExpiry" class="form-control">
                     </div>
                     <div class="col-md-2 d-flex align-items-end">
-                        <button id="saveBtn" class="btn btn-success w-100 fw-bold">執行入庫</button>
+                        <button id="saveBtn" class="btn btn-primary w-100 fw-bold"><i class="bi bi-cloud-arrow-up me-1"></i>執行入庫</button>
                     </div>
                 </div>
             </div>
@@ -110,51 +195,51 @@
             <table class="table table-hover mb-0 text-center align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th onclick="sortTable('sn')">流水號 <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('name')">裝備名稱 <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('status')">歸屬 / 保管人 <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('expiryDate')">效期與保固狀態 <span class="sort-icon">↕</span></th>
-                        <th id="actionHeader" style="display: none;">管理</th>
+                        <th onclick="sortTable('sn')"><i class="bi bi-hash"></i> 流水號 <span class="sort-icon"><i class="bi bi-arrow-down-up"></i></span></th>
+                        <th onclick="sortTable('name')"><i class="bi bi-tag"></i> 裝備名稱 <span class="sort-icon"><i class="bi bi-arrow-down-up"></i></span></th>
+                        <th onclick="sortTable('status')"><i class="bi bi-geo-alt"></i> 歸屬 / 保管人 <span class="sort-icon"><i class="bi bi-arrow-down-up"></i></span></th>
+                        <th onclick="sortTable('expiryDate')"><i class="bi bi-calendar-check"></i> 效期與保固 <span class="sort-icon"><i class="bi bi-arrow-down-up"></i></span></th>
+                        <th id="actionHeader" style="display: none;"><i class="bi bi-sliders"></i> 管理操作</th>
                     </tr>
                 </thead>
                 <tbody id="inventoryTableBody">
-                    <tr><td colspan="5" class="py-5 text-muted">資料載入中...</td></tr>
+                    <tr><td colspan="5" class="py-5 text-muted fw-bold"><i class="bi bi-lock-fill fs-4 d-block mb-2"></i>請點擊右上角登入以查看機密裝備資料</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
 
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content border-0 shadow">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">📝 個體資料修正</h5>
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header bg-dark text-white border-0 p-4">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i>個體資料修正</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body">
+                <div class="modal-body p-4 bg-light">
                     <input type="hidden" id="editId">
                     <div class="mb-3">
-                        <label class="form-label small text-muted">識別編號 (不可變動)</label>
-                        <input type="text" id="editSN" class="form-control bg-light fw-bold" readonly>
+                        <label class="form-label small text-muted">識別編號 (不可變更)</label>
+                        <input type="text" id="editSN" class="form-control bg-white fw-bold text-secondary" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">裝備名稱</label>
                         <input type="text" id="editName" class="form-control">
                     </div>
-                    <div class="row mb-3">
-                        <div class="col-4">
-                            <label class="form-label">狀態</label>
-                            <select id="editStatus" class="form-control">
+                    <div class="row g-3 mb-3">
+                        <div class="col-5">
+                            <label class="form-label">歸屬狀態</label>
+                            <select id="editStatus" class="form-select">
                                 <option value="隊上">隊上</option>
                                 <option value="個人">個人</option>
                             </select>
                         </div>
-                        <div class="col-8">
-                            <label class="form-label">保管人/位置</label>
+                        <div class="col-7">
+                            <label class="form-label">保管人 / 位置</label>
                             <input type="text" id="editHolder" class="form-control">
                         </div>
                     </div>
-                    <div class="row mb-3">
+                    <div class="row g-3 mb-3">
                         <div class="col-6">
                             <label class="form-label text-info fw-bold">保固到期日</label>
                             <input type="date" id="editWarranty" class="form-control">
@@ -164,13 +249,14 @@
                             <input type="date" id="editExpiry" class="form-control">
                         </div>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-1">
                         <label class="form-label">供應商 / 備註</label>
-                        <textarea id="editNote" class="form-control" rows="2" placeholder="採購來源、廠商聯絡方式或特殊註記"></textarea>
+                        <textarea id="editNote" class="form-control" rows="2"></textarea>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" id="updateBtn" class="btn btn-primary w-100 fw-bold">更新存檔</button>
+                <div class="modal-footer bg-light border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-light border shadow-sm" data-bs-dismiss="modal">取消</button>
+                    <button type="button" id="updateBtn" class="btn btn-primary fw-bold px-4 shadow-sm"><i class="bi bi-save me-1"></i>儲存變更</button>
                 </div>
             </div>
         </div>
@@ -182,6 +268,7 @@
         import { getFirestore, collection, addDoc, onSnapshot, query, doc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
+        // Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyAX12aOwkhf_C3MqsIonnmhg69W1UZRgHE",
             authDomain: "yusheland.firebaseapp.com",
@@ -197,12 +284,71 @@
         const auth = getAuth(app);
         const bsEditModal = new bootstrap.Modal(document.getElementById('editModal'));
 
+        // 🔴 請填入你的專屬 UID
+        const ADMIN_UID = "請貼上你的專屬_UID"; 
+
         let isAdmin = false;
+        let isCadre = false;
         let equipmentData = [];
+        let unsubscribeSnapshot = null; 
         let sortField = 'sn';
         let sortOrder = 'asc';
 
+        // 登入狀態與權限分級控管
+        onAuthStateChanged(auth, (user) => {
+            const tbody = document.getElementById('inventoryTableBody');
+            const alertBox = document.getElementById('userInfoAlert');
+            const roleText = document.getElementById('userRoleText');
+            
+            if (user) {
+                if (user.uid === ADMIN_UID) {
+                    isAdmin = true; isCadre = true;
+                    roleText.innerHTML = "最高權限管理員 <span class='badge bg-primary ms-1'>完整編輯</span>";
+                    document.getElementById('adminPanel').style.display = "block";
+                } else {
+                    isAdmin = false; isCadre = true;
+                    roleText.innerHTML = "幹部檢視模式 <span class='badge bg-secondary ms-1'>唯讀</span>";
+                    document.getElementById('adminPanel').style.display = "none";
+                }
+                
+                alertBox.style.display = "block";
+                document.getElementById('authBtn').innerHTML = '<i class="bi bi-box-arrow-right me-1"></i>安全登出';
+                document.getElementById('authBtn').classList.replace('btn-outline-light', 'btn-danger');
+                document.getElementById('authBtn').classList.replace('btn-primary', 'btn-danger'); // fallback
+                
+                if (!unsubscribeSnapshot) {
+                    unsubscribeSnapshot = onSnapshot(query(collection(db, "items")), (s) => {
+                        equipmentData = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                        renderTable();
+                    }, (error) => {
+                        tbody.innerHTML = `<tr><td colspan="5" class="py-5 text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill fs-4 d-block mb-2"></i>連線遭拒，請確認權限設定</td></tr>`;
+                    });
+                }
+            } else {
+                isAdmin = false; isCadre = false;
+                alertBox.style.display = "none";
+                document.getElementById('adminPanel').style.display = "none";
+                document.getElementById('authBtn').innerHTML = '<i class="bi bi-person-circle me-1"></i>系統登入';
+                document.getElementById('authBtn').classList.replace('btn-danger', 'btn-outline-light');
+                document.getElementById('actionHeader').style.display = "none";
+                
+                if (unsubscribeSnapshot) { unsubscribeSnapshot(); unsubscribeSnapshot = null; }
+                equipmentData = [];
+                tbody.innerHTML = '<tr><td colspan="5" class="py-5 text-muted fw-bold"><i class="bi bi-lock-fill fs-4 d-block mb-2"></i>請點擊右上角登入以查看機密裝備資料</td></tr>';
+            }
+        });
+
+        document.getElementById('authBtn').onclick = () => {
+            if (isAdmin || isCadre) { signOut(auth); } 
+            else {
+                const e = prompt("請輸入系統帳號："); if (!e) return;
+                const p = prompt("請輸入密碼："); if (!p) return;
+                signInWithEmailAndPassword(auth, e, p).catch((err) => alert("登入失敗，帳號或密碼錯誤"));
+            }
+        };
+
         window.sortTable = (field) => {
+            if (!isCadre) return;
             if (sortField === field) sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
             else { sortField = field; sortOrder = 'asc'; }
             renderTable();
@@ -211,78 +357,68 @@
         function renderTable() {
             const tbody = document.getElementById('inventoryTableBody');
             document.getElementById('actionHeader').style.display = isAdmin ? "table-cell" : "none";
-
+            
             equipmentData.sort((a, b) => {
-                let valA = a[sortField] || "";
-                let valB = b[sortField] || "";
+                let valA = a[sortField] || ""; let valB = b[sortField] || "";
                 if (typeof valA === 'string') valA = valA.toLowerCase();
                 if (typeof valB === 'string') valB = valB.toLowerCase();
-                return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' }) * (sortOrder === 'asc' ? 1 : -1);
+                return valA.localeCompare(valB, undefined, {numeric: true, sensitivity: 'base'}) * (sortOrder === 'asc' ? 1 : -1);
             });
 
             tbody.innerHTML = "";
             const now = new Date();
             const todayStr = now.toISOString().split('T')[0];
-            const threeMonthsLater = new Date();
-            threeMonthsLater.setMonth(now.getMonth() + 3);
+            const threeMonthsLater = new Date(); threeMonthsLater.setMonth(now.getMonth() + 3);
 
             equipmentData.forEach((data) => {
-                // 處理失效日邏輯 (生命安全)
                 const expiry = data.expiryDate ? new Date(data.expiryDate) : null;
-                let rowClass = "";
-                let expiryTag = data.expiryDate ? `年限: ${data.expiryDate}` : '<span class="text-muted">年限: 未設</span>';
+                let rowClass = ""; 
+                let expiryTag = data.expiryDate ? `<span class="text-secondary"><i class="bi bi-flag me-1"></i>${data.expiryDate}</span>` : '<span class="text-muted opacity-50"><i class="bi bi-dash"></i>未設年限</span>';
 
                 if (expiry) {
-                    if (expiry < now) {
-                        rowClass = "expired-row";
-                        expiryTag += '<br><span class="badge bg-danger mt-1">❗ 禁勘使用 (已過期)</span>';
-                    } else if (expiry < threeMonthsLater) {
-                        rowClass = "warning-row";
-                        expiryTag += '<br><span class="badge bg-warning text-dark mt-1">⚠️ 屆期預警</span>';
+                    if (expiry < now) { 
+                        rowClass = "expired-row"; 
+                        expiryTag += '<br><span class="badge bg-danger mt-1"><i class="bi bi-exclamation-octagon me-1"></i>禁勘使用 (已過期)</span>'; 
+                    } 
+                    else if (expiry < threeMonthsLater) { 
+                        rowClass = "warning-row"; 
+                        expiryTag += '<br><span class="badge bg-warning text-dark mt-1"><i class="bi bi-exclamation-triangle me-1"></i>屆期預警</span>'; 
                     }
                 }
 
-                // 處理保固日邏輯 (廠商維修)
                 let warrantyTag = "";
                 if (data.warrantyDate) {
-                    if (data.warrantyDate >= todayStr) {
-                        warrantyTag = `<br><span class="badge bg-info text-dark mt-1">🛡️ 保固至 ${data.warrantyDate}</span>`;
-                    } else {
-                        warrantyTag = `<br><span class="badge bg-secondary mt-1">過保</span>`;
-                    }
+                    if (data.warrantyDate >= todayStr) warrantyTag = `<br><span class="badge bg-info text-dark mt-1"><i class="bi bi-shield-check me-1"></i>保固至 ${data.warrantyDate}</span>`;
+                    else warrantyTag = `<br><span class="badge bg-secondary mt-1"><i class="bi bi-shield-slash me-1"></i>已過保</span>`;
                 }
 
                 const actionButtons = isAdmin ? `
-                        <button class="btn btn-sm btn-dark" onclick="openEditModal('${data.id}')">修正</button>
-                        <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteItem('${data.id}', '${data.sn}')">刪除</button>
-                    ` : "";
+                    <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="openEditModal('${data.id}')"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-sm btn-outline-danger fw-bold ms-1 shadow-sm" onclick="deleteItem('${data.id}', '${data.sn}')"><i class="bi bi-trash3"></i></button>
+                ` : "";
+
+                const statusBadgeClass = data.status === '隊上' ? 'badge-team' : 'badge-personal';
 
                 tbody.innerHTML += `
-                        <tr class="${rowClass}">
-                            <td class="fw-bold text-secondary text-nowrap">${data.sn}</td>
-                            <td class="fw-bold">
-                                ${data.name}
-                                ${data.note ? `<br><small class="text-muted">${data.note}</small>` : ''}
-                            </td>
-                            <td class="text-nowrap">
-                                <span class="badge ${data.status === '隊上' ? 'bg-success' : 'bg-warning text-dark'}">${data.status}</span>
-                                <span class="ms-1">${data.holder || '-'}</span>
-                            </td>
-                            <td class="text-nowrap">
-                                ${expiryTag}
-                                ${warrantyTag}
-                            </td>
-                            ${isAdmin ? `<td>${actionButtons}</td>` : ""}
-                        </tr>
-                    `;
+                    <tr class="${rowClass}">
+                        <td class="fw-bold text-secondary text-nowrap font-monospace">${data.sn}</td>
+                        <td class="fw-bold text-dark">
+                            ${data.name}
+                            ${data.note ? `<br><small class="text-muted fw-normal"><i class="bi bi-info-circle me-1"></i>${data.note}</small>` : ''}
+                        </td>
+                        <td class="text-nowrap">
+                            <span class="badge ${statusBadgeClass}">${data.status}</span>
+                            <span class="ms-2 fw-medium text-secondary">${data.holder || '-'}</span>
+                        </td>
+                        <td class="text-nowrap">${expiryTag}${warrantyTag}</td>
+                        ${isAdmin ? `<td class="text-nowrap">${actionButtons}</td>` : ""}
+                    </tr>
+                `;
             });
+            if(equipmentData.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="py-5 text-muted fw-bold"><i class="bi bi-inbox fs-4 d-block mb-2"></i>資料庫目前為空</td></tr>`;
         }
 
-        onSnapshot(query(collection(db, "items")), (s) => {
-            equipmentData = s.docs.map(d => ({ id: d.id, ...d.data() }));
-            renderTable();
-        });
-
+        // 後續的邏輯函數與之前版本完全相同，確保穩定性
         document.getElementById('saveBtn').onclick = async () => {
             if (!isAdmin) return;
             const prefix = document.getElementById('itemPrefix').value.trim().toUpperCase();
@@ -304,7 +440,6 @@
                 const sn = `${prefix}-${(startNum + i).toString().padStart(3, '0')}`;
                 if (equipmentData.some(item => item.sn === sn)) duplicates.push(sn);
             }
-
             if (duplicates.length > 0) return alert(`編號衝突：以下編號已存在：\n${duplicates.join(', ')}`);
             if (!confirm(`確定入庫 ${count} 筆裝備？`)) return;
 
@@ -313,14 +448,12 @@
                 for (let i = 0; i < count; i++) {
                     const sn = `${prefix}-${(startNum + i).toString().padStart(3, '0')}`;
                     const docRef = doc(collection(db, "items"));
-                    batch.set(docRef, {
-                        sn, name, status, holder: holder || "器材室",
-                        expiryDate: expiry, warrantyDate: warranty, note: note, time: new Date()
-                    });
+                    batch.set(docRef, { sn, name, status, holder: holder || "器材室", expiryDate: expiry, warrantyDate: warranty, note: note, time: new Date() });
                 }
                 await batch.commit();
                 alert(`成功入庫 ${count} 件裝備。`);
-                document.querySelectorAll('#adminPanel input').forEach(i => i.value = "");
+                document.querySelectorAll('#adminPanel input:not([type="number"])').forEach(i => i.value = "");
+                document.getElementById('itemNote').value = "";
             } catch (e) { alert("寫入失敗"); }
         };
 
@@ -344,12 +477,8 @@
             if (status === '個人' && !holder) return alert("實名追蹤警告：個人領用必須註明領用人。");
 
             await updateDoc(doc(db, "items", id), {
-                name: document.getElementById('editName').value,
-                status: status,
-                holder: holder,
-                expiryDate: document.getElementById('editExpiry').value,
-                warrantyDate: document.getElementById('editWarranty').value,
-                note: document.getElementById('editNote').value
+                name: document.getElementById('editName').value, status: status, holder: holder,
+                expiryDate: document.getElementById('editExpiry').value, warrantyDate: document.getElementById('editWarranty').value, note: document.getElementById('editNote').value
             });
             bsEditModal.hide();
         };
@@ -359,21 +488,6 @@
             if (!confirm(`確定刪除 [${sn}]？此動作不可撤銷。`)) return;
             const input = prompt(`請輸入編號 [${sn}] 確認刪除：`);
             if (input === sn) await deleteDoc(doc(db, "items", id));
-        };
-
-        onAuthStateChanged(auth, (u) => {
-            isAdmin = !!u;
-            document.getElementById('authBtn').innerText = isAdmin ? "登出系統" : "管理員登入";
-            document.getElementById('adminPanel').style.display = isAdmin ? "block" : "none";
-            renderTable();
-        });
-
-        document.getElementById('authBtn').onclick = () => {
-            if (isAdmin) signOut(auth);
-            else {
-                const e = prompt("帳號："); const p = prompt("密碼：");
-                if (e && p) signInWithEmailAndPassword(auth, e, p).catch(() => alert("失敗"));
-            }
         };
     </script>
 </body>
