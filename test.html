@@ -2,18 +2,31 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>義消裝備庫存管理系統</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* 微調一點樣式讓手機版更易讀 */
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .table-responsive {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+    </style>
 </head>
-<body class="bg-light">
-    <div class="container mt-4">
+<body>
+    <div class="container mt-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>🛡️ 裝備庫存系統</h2>
-            <button id="authBtn" class="btn btn-outline-primary">管理員登入</button>
+            <h2 class="h4 mb-0">🛡️ 裝備庫存系統</h2>
+            <button id="authBtn" class="btn btn-sm btn-outline-primary">管理員登入</button>
         </div>
 
-        <div id="adminPanel" class="card mb-4" style="display: none;">
-            <div class="card-header bg-dark text-white">➕ 新增裝備 (管理員專區)</div>
+        <div id="adminPanel" class="card mb-4 shadow-sm" style="display: none;">
+            <div class="card-header bg-dark text-white fw-bold">➕ 新增裝備 (管理員專區)</div>
             <div class="card-body row g-2">
                 <div class="col-md-3">
                     <input type="text" id="itemSN" class="form-control" placeholder="流水號 (例: R-001)">
@@ -33,30 +46,27 @@
             </div>
         </div>
 
-        <div class="card shadow-sm">
-            <div class="card-body p-0">
-                <table class="table table-hover table-striped mb-0 text-center align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>流水號</th>
-                            <th>裝備名稱</th>
-                            <th>保管人/位置</th>
-                            <th>目前庫存 / 總量</th>
-                            <th id="actionHeader" style="display: none;">管理操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody">
-                        <tr><td colspan="5">資料載入中...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0 text-center align-middle text-nowrap">
+                <thead class="table-dark">
+                    <tr>
+                        <th>流水號</th>
+                        <th>裝備名稱</th>
+                        <th>保管人/位置</th>
+                        <th>目前庫存 / 總量</th>
+                        <th id="actionHeader" style="display: none;">管理操作</th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody">
+                    <tr><td colspan="5" class="py-4">資料載入中...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
-        // 1. 新增 Authentication 模組
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
         // 【請替換成你的 Firebase Config】
@@ -71,45 +81,43 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-        const auth = getAuth(app); // 初始化驗證服務
+        const auth = getAuth(app);
 
-        // 全域變數：紀錄目前是否為管理員
         let isAdmin = false;
-        let equipmentData = []; // 暫存資料庫抓下來的資料，方便重新渲染畫面
+        let equipmentData = [];
 
-        // --- 畫出表格的邏輯 ---
         function renderTable() {
             const tbody = document.getElementById('inventoryTableBody');
             const actionHeader = document.getElementById('actionHeader');
             tbody.innerHTML = "";
 
-            // 根據 isAdmin 決定是否顯示「管理操作」的表頭
             actionHeader.style.display = isAdmin ? "table-cell" : "none";
 
             if (equipmentData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5">目前沒有裝備紀錄。</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="py-4 text-muted">目前沒有裝備紀錄。</td></tr>`;
                 return;
             }
 
             equipmentData.forEach((data) => {
-                // 如果是管理員，就組合出按鈕的 HTML；如果不是，就留空
                 const actionButtons = isAdmin ? `
-                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, -1)">-</button>
-                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, 1)">+</button>
-                        <button class="btn btn-sm btn-danger ms-2" onclick="removeItem('${data.id}')">報廢</button>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, -1)">-</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, 1)">+</button>
+                        </div>
+                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeItem('${data.id}')">報廢</button>
                     ` : "";
 
                 const actionCell = isAdmin ? `<td>${actionButtons}</td>` : "";
 
                 tbody.innerHTML += `
                         <tr>
-                            <td>${data.sn || '無'}</td>
+                            <td class="text-muted">${data.sn || '無'}</td>
                             <td class="fw-bold">${data.name}</td>
                             <td>${data.holder || '倉庫'}</td>
                             <td>
                                 <span class="badge ${data.currentQty > 0 ? 'bg-primary' : 'bg-danger'} fs-6">
                                     ${data.currentQty}
-                                </span> / ${data.totalQty}
+                                </span> / <span class="text-muted">${data.totalQty}</span>
                             </td>
                             ${actionCell}
                         </tr>
@@ -117,43 +125,37 @@
             });
         }
 
-        // --- 監聽資料庫變化 ---
         const q = query(collection(db, "items"), orderBy("time", "desc"));
         onSnapshot(q, (snapshot) => {
             equipmentData = [];
             snapshot.forEach((item) => {
                 equipmentData.push({ id: item.id, ...item.data() });
             });
-            renderTable(); // 資料有變動，重新畫表格
+            renderTable();
         });
 
-        // --- 監聽登入狀態變化 ---
         onAuthStateChanged(auth, (user) => {
             const authBtn = document.getElementById('authBtn');
             const adminPanel = document.getElementById('adminPanel');
 
             if (user) {
-                // 已登入狀態
                 isAdmin = true;
                 authBtn.innerText = "管理員登出";
                 authBtn.classList.replace("btn-outline-primary", "btn-outline-danger");
-                adminPanel.style.display = "block"; // 顯示新增區塊
+                adminPanel.style.display = "block";
             } else {
-                // 未登入狀態
                 isAdmin = false;
                 authBtn.innerText = "管理員登入";
                 authBtn.classList.replace("btn-outline-danger", "btn-outline-primary");
-                adminPanel.style.display = "none";  // 隱藏新增區塊
+                adminPanel.style.display = "none";
             }
-            renderTable(); // 權限改變時，重新畫表格把按鈕藏起來或秀出來
+            renderTable();
         });
 
-        // --- 登入/登出按鈕邏輯 ---
         document.getElementById('authBtn').onclick = () => {
             if (isAdmin) {
                 signOut(auth);
             } else {
-                // 這裡為了簡單示範，使用瀏覽器原生的 prompt 讓使用者輸入帳密
                 const email = prompt("請輸入管理員信箱：");
                 if (!email) return;
                 const password = prompt("請輸入密碼：");
@@ -165,9 +167,8 @@
             }
         };
 
-        // --- 掛載全域函式 (新增、修改、刪除邏輯不變) ---
         window.changeQty = async (id, currentQty, change) => {
-            if (!isAdmin) return; // 雙重防線：沒權限就擋掉
+            if (!isAdmin) return;
             const newQty = currentQty + change;
             if (newQty < 0) return;
             try { await updateDoc(doc(db, "items", id), { currentQty: newQty }); } catch (e) { console.error(e); }
@@ -190,14 +191,4 @@
 
             try {
                 await addDoc(collection(db, "items"), {
-                    sn: sn, name: name, totalQty: total, currentQty: total, holder: holder, time: new Date()
-                });
-                document.getElementById('itemSN').value = "";
-                document.getElementById('itemName').value = "";
-                document.getElementById('itemTotal').value = "";
-                document.getElementById('itemHolder').value = "";
-            } catch (e) { alert("儲存失敗"); }
-        };
-    </script>
-</body>
-</html>
+                    sn: sn, name: name, totalQty: total, currentQty: total, holder: holder,
