@@ -101,28 +101,28 @@
 
             equipmentData.forEach((data) => {
                 const actionButtons = isAdmin ? `
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, -1)">-</button>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, 1)">+</button>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeItem('${data.id}')">報廢</button>
-                    ` : "";
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, -1)">-</button>
+                                <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, 1)">+</button>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger ms-2" onclick="removeItem('${data.id}')">報廢</button>
+                        ` : "";
 
                 const actionCell = isAdmin ? `<td>${actionButtons}</td>` : "";
 
                 tbody.innerHTML += `
-                        <tr>
-                            <td class="text-muted">${data.sn || '無'}</td>
-                            <td class="fw-bold">${data.name}</td>
-                            <td>${data.holder || '倉庫'}</td>
-                            <td>
-                                <span class="badge ${data.currentQty > 0 ? 'bg-primary' : 'bg-danger'} fs-6">
-                                    ${data.currentQty}
-                                </span> / <span class="text-muted">${data.totalQty}</span>
-                            </td>
-                            ${actionCell}
-                        </tr>
-                    `;
+                            <tr>
+                                <td class="text-muted">${data.sn || '無'}</td>
+                                <td class="fw-bold">${data.name}</td>
+                                <td>${data.holder || '倉庫'}</td>
+                                <td>
+                                    <span class="badge ${data.currentQty > 0 ? 'bg-primary' : 'bg-danger'} fs-6">
+                                        ${data.currentQty}
+                                    </span> / <span class="text-muted">${data.totalQty}</span>
+                                </td>
+                                ${actionCell}
+                            </tr>
+                        `;
             });
         }
 
@@ -192,4 +192,14 @@
 
             try {
                 await addDoc(collection(db, "items"), {
-                    sn: sn, name: name, totalQty: total, currentQty: total, holder: holder,
+                    sn: sn, name: name, totalQty: total, currentQty: total, holder: holder, time: new Date()
+                });
+                document.getElementById('itemSN').value = "";
+                document.getElementById('itemName').value = "";
+                document.getElementById('itemTotal').value = "";
+                document.getElementById('itemHolder').value = "";
+            } catch (e) { alert("儲存失敗"); }
+        };
+    </script>
+</body>
+</html>
