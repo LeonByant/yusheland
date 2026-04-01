@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>義消裝備風險管理系統</title>
+    <title>義消裝備風險管理系統 - 批次管理版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -21,9 +21,14 @@
             background-color: #ffe5e5 !important;
         }
 
+        .warning-row {
+            background-color: #fff8e1 !important;
+        }
+        /* 快過期警告 */
         th {
             cursor: pointer;
             user-select: none;
+            white-space: nowrap;
         }
 
             th:hover {
@@ -34,47 +39,79 @@
             font-size: 0.8em;
             margin-left: 5px;
         }
+
+        .card-header {
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2 class="h4 mb-0 text-primary">🛡️ 裝備風險管理系統</h2>
+            <h2 class="h4 mb-0 text-primary fw-bold">🛡️ 裝備風險管理系統 <small class="text-muted fs-6">v2.0 批次管理</small></h2>
             <button id="authBtn" class="btn btn-sm btn-outline-primary shadow-sm">管理員登入</button>
         </div>
 
         <div id="adminPanel" class="card mb-4 border-0 shadow-sm" style="display: none;">
-            <div class="card-header bg-dark text-white fw-bold">➕ 新增裝備 (管理員專區)</div>
-            <div class="card-body row g-2">
-                <div class="col-md-2"><input type="text" id="itemSN" class="form-control" placeholder="流水號"></div>
-                <div class="col-md-2"><input type="text" id="itemName" class="form-control" placeholder="裝備名稱"></div>
-                <div class="col-md-1"><input type="number" id="itemTotal" class="form-control" placeholder="數量" min="0"></div>
-                <div class="col-md-2">
-                    <select id="itemStatus" class="form-control">
-                        <option value="隊上">存放隊上</option>
-                        <option value="個人">個人領用</option>
-                    </select>
+            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                <span>➕ 批次裝備入庫 (邏輯稽核模式)</span>
+                <span class="badge bg-secondary">自動生成獨立流水號</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-2">
+                        <label class="form-label small">類別代碼 (如: R)</label>
+                        <input type="text" id="itemPrefix" class="form-control" placeholder="代碼">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">起始數字 (如: 001)</label>
+                        <input type="number" id="itemStartNum" class="form-control" placeholder="序號" min="1">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">入庫數量</label>
+                        <input type="number" id="itemBatchCount" class="form-control" placeholder="件數" min="1" value="1">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">裝備全名</label>
+                        <input type="text" id="itemName" class="form-control" placeholder="如: 11mm 靜力繩">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">失效日期 (年限)</label>
+                        <input type="date" id="itemExpiry" class="form-control">
+                    </div>
                 </div>
-                <div class="col-md-2"><input type="text" id="itemHolder" class="form-control" placeholder="保管人/詳細位置"></div>
-                <div class="col-md-2"><input type="date" id="itemExpiry" class="form-control" title="失效日期"></div>
-                <div class="col-md-1"><button id="saveBtn" class="btn btn-success w-100">入庫</button></div>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label small">歸屬狀態</label>
+                        <select id="itemStatus" class="form-control">
+                            <option value="隊上">存放隊上</option>
+                            <option value="個人">個人領用</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">保管人 / 詳細位置 (實名追蹤)</label>
+                        <input type="text" id="itemHolder" class="form-control" placeholder="請輸入具體姓名或存放車廂編號">
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button id="saveBtn" class="btn btn-success w-100 fw-bold">執行批次入庫</button>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="table-responsive">
-            <table class="table table-hover mb-0 text-center align-middle text-nowrap">
+            <table class="table table-hover mb-0 text-center align-middle">
                 <thead class="table-dark">
                     <tr>
                         <th onclick="sortTable('sn')">流水號 <span class="sort-icon">↕</span></th>
                         <th onclick="sortTable('name')">裝備名稱 <span class="sort-icon">↕</span></th>
                         <th onclick="sortTable('status')">歸屬狀態 / 保管人 <span class="sort-icon">↕</span></th>
-                        <th onclick="sortTable('currentQty')">庫存 / 總量 <span class="sort-icon">↕</span></th>
                         <th onclick="sortTable('expiryDate')">失效日期 <span class="sort-icon">↕</span></th>
                         <th id="actionHeader" style="display: none;">管理</th>
                     </tr>
                 </thead>
                 <tbody id="inventoryTableBody">
-                    <tr><td colspan="6" class="py-5">資料串接中...</td></tr>
+                    <tr><td colspan="5" class="py-5 text-muted">正在建立安全連線中...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -84,43 +121,39 @@
         <div class="modal-dialog">
             <div class="modal-content border-0 shadow">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">📝 編輯裝備屬性</h5>
+                    <h5 class="modal-title">📝 個體資料修正</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <input type="hidden" id="editId">
                     <div class="mb-3">
-                        <label class="form-label small text-muted">流水號 (鎖定防呆)</label>
-                        <input type="text" id="editSN" class="form-control bg-light" readonly>
+                        <label class="form-label small text-muted">識別編號 (不可變動)</label>
+                        <input type="text" id="editSN" class="form-control bg-light fw-bold" readonly>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">裝備名稱</label>
                         <input type="text" id="editName" class="form-control">
                     </div>
                     <div class="row mb-3">
-                        <div class="col"><label class="form-label">目前數量</label><input type="number" id="editCurrent" class="form-control" min="0"></div>
-                        <div class="col"><label class="form-label">總數量</label><input type="number" id="editTotal" class="form-control" min="0"></div>
-                    </div>
-                    <div class="row mb-3">
                         <div class="col-4">
-                            <label class="form-label">歸屬狀態</label>
+                            <label class="form-label">狀態</label>
                             <select id="editStatus" class="form-control">
-                                <option value="隊上">存放隊上</option>
-                                <option value="個人">個人領用</option>
+                                <option value="隊上">隊上</option>
+                                <option value="個人">個人</option>
                             </select>
                         </div>
                         <div class="col-8">
-                            <label class="form-label">詳細位置 / 保管人姓名</label>
+                            <label class="form-label">保管人/位置</label>
                             <input type="text" id="editHolder" class="form-control">
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">失效日期 (年限考量)</label>
+                        <label class="form-label">失效日期</label>
                         <input type="date" id="editExpiry" class="form-control">
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" id="updateBtn" class="btn btn-primary w-100">確認儲存</button>
+                    <button type="button" id="updateBtn" class="btn btn-primary w-100 fw-bold">更新存檔</button>
                 </div>
             </div>
         </div>
@@ -129,7 +162,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, doc, updateDoc, deleteDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -167,20 +200,30 @@
                 let valB = b[sortField] || "";
                 if (typeof valA === 'string') valA = valA.toLowerCase();
                 if (typeof valB === 'string') valB = valB.toLowerCase();
-                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
-                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
-                return 0;
+                // 針對編號做智慧型排序處理 (處理 R-1 與 R-10 的順序)
+                return valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' }) * (sortOrder === 'asc' ? 1 : -1);
             });
 
             tbody.innerHTML = "";
-            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            const threeMonthsLater = new Date();
+            threeMonthsLater.setMonth(now.getMonth() + 3);
 
             equipmentData.forEach((data) => {
-                const isExpired = data.expiryDate && data.expiryDate < today;
-                const rowClass = isExpired ? 'expired-row' : '';
-                const statusBadge = data.status === '隊上' ? 'bg-success' : 'bg-warning text-dark';
+                const expiry = data.expiryDate ? new Date(data.expiryDate) : null;
+                let rowClass = "";
+                let expiryTag = "";
 
-                // 管理員按鈕區塊：新增了紅色的刪除按鈕
+                if (expiry) {
+                    if (expiry < now) {
+                        rowClass = "expired-row";
+                        expiryTag = '<br><span class="badge bg-danger">❗ 已失效</span>';
+                    } else if (expiry < threeMonthsLater) {
+                        rowClass = "warning-row";
+                        expiryTag = '<br><span class="badge bg-warning text-dark">⚠️ 屆期預警</span>';
+                    }
+                }
+
                 const actionButtons = isAdmin ? `
                         <button class="btn btn-sm btn-dark" onclick="openEditModal('${data.id}')">修正</button>
                         <button class="btn btn-sm btn-outline-danger ms-1" onclick="deleteItem('${data.id}', '${data.sn}')">刪除</button>
@@ -188,16 +231,15 @@
 
                 tbody.innerHTML += `
                         <tr class="${rowClass}">
-                            <td><small class="text-muted">${data.sn}</small></td>
+                            <td class="fw-bold text-secondary text-nowrap">${data.sn}</td>
                             <td class="fw-bold">${data.name}</td>
-                            <td>
-                                <span class="badge ${statusBadge}">${data.status}</span>
-                                <span class="ms-1">${data.holder || '未指定'}</span>
+                            <td class="text-nowrap">
+                                <span class="badge ${data.status === '隊上' ? 'bg-success' : 'bg-warning text-dark'}">${data.status}</span>
+                                <span class="ms-1">${data.holder || '-'}</span>
                             </td>
-                            <td><span class="badge ${data.currentQty > 0 ? 'bg-primary' : 'bg-danger'}">${data.currentQty}</span> / ${data.totalQty}</td>
-                            <td>
-                                ${data.expiryDate || '未設限'}
-                                ${isExpired ? '<br><span class="badge bg-danger">❗已過期</span>' : ''}
+                            <td class="text-nowrap">
+                                ${data.expiryDate || '<span class="text-muted">未設限</span>'}
+                                ${expiryTag}
                             </td>
                             ${isAdmin ? `<td>${actionButtons}</td>` : ""}
                         </tr>
@@ -210,56 +252,49 @@
             renderTable();
         });
 
-        // --- 刪除資料 (雙重確認防呆機制) ---
-        window.deleteItem = async (id, sn) => {
-            if (!isAdmin) return;
-
-            // 第一層確認：基本警告
-            if (!confirm(`【風險提示】您準備刪除流水號 [${sn}] 的裝備資料。\n刪除後將無法復原，是否繼續？`)) {
-                return;
-            }
-
-            // 第二層確認：要求輸入流水號驗證
-            const inputSN = prompt(`【二次確認】為避免誤刪，請輸入該裝備的流水號 [${sn}] 以執行徹底刪除：`);
-
-            if (inputSN !== sn) {
-                if (inputSN !== null) {
-                    alert("輸入的流水號不符，已取消刪除操作。");
-                }
-                return; // 使用者按取消或輸入錯誤，中斷操作
-            }
-
-            // 兩層都通過，執行資料庫刪除
-            try {
-                await deleteDoc(doc(db, "items", id));
-            } catch (error) {
-                console.error("刪除失敗", error);
-                alert("刪除失敗，請檢查網路連線。");
-            }
-        };
-
-        // --- 防呆邏輯：新增裝備 ---
+        // --- 核心改進：批次產製邏輯 ---
         document.getElementById('saveBtn').onclick = async () => {
             if (!isAdmin) return;
-            const sn = document.getElementById('itemSN').value.trim();
+            const prefix = document.getElementById('itemPrefix').value.trim().toUpperCase();
+            const startNum = parseInt(document.getElementById('itemStartNum').value);
+            const count = parseInt(document.getElementById('itemBatchCount').value);
             const name = document.getElementById('itemName').value.trim();
-            const total = parseInt(document.getElementById('itemTotal').value) || 0;
             const status = document.getElementById('itemStatus').value;
             const holder = document.getElementById('itemHolder').value.trim();
             const expiry = document.getElementById('itemExpiry').value;
 
-            if (!name || !sn) return alert("防呆機制：流水號與名稱為必填欄位。");
-            if (total < 0) return alert("邏輯錯誤：實體裝備數量不可為負值。");
+            if (!prefix || !startNum || !name) return alert("邏輯錯誤：類別代碼、起始序號與名稱不可為空。");
+            if (count < 1 || count > 50) return alert("風險管控：單次入庫請介於 1~50 件之間。");
+            if (status === '個人' && !holder) return alert("實名追蹤警告：個人領用必須註明領用人。");
 
-            const isDuplicate = equipmentData.some(item => item.sn === sn);
-            if (isDuplicate) return alert("風險管控警告：此流水號已存在系統中，請勿重複登打！");
-            if (status === '個人' && !holder) return alert("邏輯錯誤：若狀態為「個人領用」，必須填寫具體保管人姓名以釐清責任。");
+            // 1. 預先檢查是否有編號衝突
+            let duplicates = [];
+            for (let i = 0; i < count; i++) {
+                const sn = `${prefix}-${(startNum + i).toString().padStart(3, '0')}`;
+                if (equipmentData.some(item => item.sn === sn)) duplicates.push(sn);
+            }
 
-            await addDoc(collection(db, "items"), {
-                sn, name, totalQty: total, currentQty: total,
-                status, holder: holder || "器材室", expiryDate: expiry, time: new Date()
-            });
-            document.querySelectorAll('#adminPanel input').forEach(i => i.value = "");
+            if (duplicates.length > 0) {
+                return alert(`編號衝突：以下編號已存在，請修正起始序號：\n${duplicates.join(', ')}`);
+            }
+
+            if (!confirm(`確定要一次產製 ${count} 筆獨立的裝備資料嗎？`)) return;
+
+            // 2. 執行批次寫入 (Firebase Batch Write 效能更好)
+            try {
+                const batch = writeBatch(db);
+                for (let i = 0; i < count; i++) {
+                    const sn = `${prefix}-${(startNum + i).toString().padStart(3, '0')}`;
+                    const docRef = doc(collection(db, "items"));
+                    batch.set(docRef, {
+                        sn, name, status, holder: holder || "器材室",
+                        expiryDate: expiry, time: new Date()
+                    });
+                }
+                await batch.commit();
+                alert(`成功入庫 ${count} 件裝備。`);
+                document.querySelectorAll('#adminPanel input').forEach(i => i.value = "");
+            } catch (e) { alert("寫入失敗"); }
         };
 
         window.openEditModal = (id) => {
@@ -267,29 +302,20 @@
             document.getElementById('editId').value = id;
             document.getElementById('editSN').value = item.sn;
             document.getElementById('editName').value = item.name;
-            document.getElementById('editCurrent').value = item.currentQty;
-            document.getElementById('editTotal').value = item.totalQty;
             document.getElementById('editStatus').value = item.status || "隊上";
             document.getElementById('editHolder').value = item.holder || "";
             document.getElementById('editExpiry').value = item.expiryDate || "";
             bsEditModal.show();
         };
 
-        // --- 防呆邏輯：編輯裝備 ---
         document.getElementById('updateBtn').onclick = async () => {
             const id = document.getElementById('editId').value;
-            const currentQty = parseInt(document.getElementById('editCurrent').value) || 0;
-            const totalQty = parseInt(document.getElementById('editTotal').value) || 0;
             const status = document.getElementById('editStatus').value;
             const holder = document.getElementById('editHolder').value.trim();
-
-            if (currentQty < 0 || totalQty < 0) return alert("邏輯錯誤：實體裝備數量不可為負值。");
-            if (status === '個人' && !holder) return alert("邏輯錯誤：若狀態為「個人領用」，必須填寫具體保管人姓名以釐清責任。");
+            if (status === '個人' && !holder) return alert("實名追蹤警告：個人領用必須註明領用人。");
 
             await updateDoc(doc(db, "items", id), {
                 name: document.getElementById('editName').value,
-                currentQty: currentQty,
-                totalQty: totalQty,
                 status: status,
                 holder: holder,
                 expiryDate: document.getElementById('editExpiry').value
@@ -297,8 +323,15 @@
             bsEditModal.hide();
         };
 
-        onAuthStateChanged(auth, (user) => {
-            isAdmin = !!user;
+        window.deleteItem = async (id, sn) => {
+            if (!isAdmin) return;
+            if (!confirm(`確定刪除 [${sn}]？此動作不可撤銷。`)) return;
+            const input = prompt(`請輸入編號 [${sn}] 確認刪除：`);
+            if (input === sn) await deleteDoc(doc(db, "items", id));
+        };
+
+        onAuthStateChanged(auth, (u) => {
+            isAdmin = !!u;
             document.getElementById('authBtn').innerText = isAdmin ? "登出系統" : "管理員登入";
             document.getElementById('adminPanel').style.display = isAdmin ? "block" : "none";
             renderTable();
@@ -307,9 +340,8 @@
         document.getElementById('authBtn').onclick = () => {
             if (isAdmin) signOut(auth);
             else {
-                const email = prompt("管理員帳號：");
-                const pw = prompt("密碼：");
-                if (email && pw) signInWithEmailAndPassword(auth, email, pw).catch(() => alert("登入失敗"));
+                const e = prompt("帳號："); const p = prompt("密碼：");
+                if (e && p) signInWithEmailAndPassword(auth, e, p).catch(() => alert("失敗"));
             }
         };
     </script>
