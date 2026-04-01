@@ -2,106 +2,185 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>裝備庫存管理</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            padding: 20px;
-        }
-
-        .item-card {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin: 5px 0;
-            display: flex;
-            justify-content: space-between;
-        }
-    </style>
+    <title>義消裝備庫存管理系統</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body>
-    <h1>🛡️ 裝備庫存系統</h1>
+<body class="bg-light">
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>🛡️ 裝備庫存系統</h2>
+            <button id="authBtn" class="btn btn-outline-primary">管理員登入</button>
+        </div>
 
-    <!-- 1. 輸入區塊 (像 PHP 的 Form，但不用指定 action) -->
-    <div style="background: #f4f4f4; padding: 15px;">
-        <input type="text" id="itemSN">       <!-- 流水號 -->
-        <input type="text" id="itemName">     <!-- 裝備名稱 -->
-        <input type="number" id="itemTotal">  <!-- 總庫存量 -->
-        <input type="text" id="itemHolder">   <!-- 保管人 -->
-        <button id="saveBtn">新增裝備</button>
+        <div id="adminPanel" class="card mb-4" style="display: none;">
+            <div class="card-header bg-dark text-white">➕ 新增裝備 (管理員專區)</div>
+            <div class="card-body row g-2">
+                <div class="col-md-3">
+                    <input type="text" id="itemSN" class="form-control" placeholder="流水號 (例: R-001)">
+                </div>
+                <div class="col-md-3">
+                    <input type="text" id="itemName" class="form-control" placeholder="裝備名稱 (例: 11mm 靜力繩)">
+                </div>
+                <div class="col-md-2">
+                    <input type="number" id="itemTotal" class="form-control" placeholder="總數量">
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="itemHolder" class="form-control" placeholder="放置處/保管人">
+                </div>
+                <div class="col-md-2">
+                    <button id="saveBtn" class="btn btn-success w-100">入庫</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0 text-center align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>流水號</th>
+                            <th>裝備名稱</th>
+                            <th>保管人/位置</th>
+                            <th>目前庫存 / 總量</th>
+                            <th id="actionHeader" style="display: none;">管理操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <tr><td colspan="5">資料載入中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <hr>
-
-    <!-- 2. 顯示區塊 (原本 PHP 用 foreach 印出的地方) -->
-    <h3>目前庫存清單：</h3>
-    <div id="inventoryList">正在載入中...</div>
-
     <script type="module">
-        
-   
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+        // 1. 新增 Authentication 模組
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js";
 
-        // 【請貼上你原本成功的 Config】
+        // 【請替換成你的 Firebase Config】
         const firebaseConfig = {
-            apiKey: "AIzaSyAX12aOwkhf_C3MqsIonnmhg69W1UZRgHE",
-            authDomain: "yusheland.firebaseapp.com",
-            projectId: "yusheland",
-            storageBucket: "yusheland.firebasestorage.app",
-            messagingSenderId: "199797086046",
-            appId: "1:199797086046:web:1f4b823d2a31ddc730a1cf",
-            measurementId: "G-X733MEWBW1"
+            apiKey: "你的_API_KEY",
+            authDomain: "你的_AUTH_DOMAIN",
+            projectId: "你的_PROJECT_ID",
+            storageBucket: "你的_STORAGE_BUCKET",
+            messagingSenderId: "你的_SENDER_ID",
+            appId: "你的_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app); // 初始化驗證服務
 
-        window.changeQty = async (id, currentQty, change) => {
-            const newQty = currentQty + change;
-            if (newQty < 0) return;
-            try {
-                await updateDoc(doc(db, "items", id), { currentQty: newQty });
-            } catch (e) { console.error(e); }
-        };
+        // 全域變數：紀錄目前是否為管理員
+        let isAdmin = false;
+        let equipmentData = []; // 暫存資料庫抓下來的資料，方便重新渲染畫面
 
-        // --- 報廢(刪除)功能 ---
-        window.removeItem = async (id) => {
-            if (!confirm("確定要報廢這件裝備嗎？")) return;
-            try {
-                await deleteDoc(doc(db, "items", id));
-            } catch (e) { console.error(e); }
-        };
+        // --- 畫出表格的邏輯 ---
+        function renderTable() {
+            const tbody = document.getElementById('inventoryTableBody');
+            const actionHeader = document.getElementById('actionHeader');
+            tbody.innerHTML = "";
 
-        // --- 監聽並畫出畫面 ---
+            // 根據 isAdmin 決定是否顯示「管理操作」的表頭
+            actionHeader.style.display = isAdmin ? "table-cell" : "none";
+
+            if (equipmentData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5">目前沒有裝備紀錄。</td></tr>`;
+                return;
+            }
+
+            equipmentData.forEach((data) => {
+                // 如果是管理員，就組合出按鈕的 HTML；如果不是，就留空
+                const actionButtons = isAdmin ? `
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, -1)">-</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="changeQty('${data.id}', ${data.currentQty}, 1)">+</button>
+                        <button class="btn btn-sm btn-danger ms-2" onclick="removeItem('${data.id}')">報廢</button>
+                    ` : "";
+
+                const actionCell = isAdmin ? `<td>${actionButtons}</td>` : "";
+
+                tbody.innerHTML += `
+                        <tr>
+                            <td>${data.sn || '無'}</td>
+                            <td class="fw-bold">${data.name}</td>
+                            <td>${data.holder || '倉庫'}</td>
+                            <td>
+                                <span class="badge ${data.currentQty > 0 ? 'bg-primary' : 'bg-danger'} fs-6">
+                                    ${data.currentQty}
+                                </span> / ${data.totalQty}
+                            </td>
+                            ${actionCell}
+                        </tr>
+                    `;
+            });
+        }
+
+        // --- 監聽資料庫變化 ---
         const q = query(collection(db, "items"), orderBy("time", "desc"));
         onSnapshot(q, (snapshot) => {
-            const listDiv = document.getElementById('inventoryList');
-            listDiv.innerHTML = "";
+            equipmentData = [];
             snapshot.forEach((item) => {
-                const data = item.data();
-                const id = item.id;
-                listDiv.innerHTML += `
-                <div class="item-card" style="background:white; border-radius:12px; padding:15px; margin-bottom:10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-                    <div style="display:flex; justify-content:space-between; font-size:12px; color:#888;">
-                        <span>SN: ${data.sn || '無'}</span>
-                        <span>保管人: <b style="color:#4a90e2">${data.holder || '倉庫'}</b></span>
-                    </div>
-                    <div style="margin:10px 0; font-size:18px;"><b>${data.name}</b></div>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:14px;">庫存：<b>${data.currentQty}</b> / ${data.totalQty}</span>
-                        <div>
-                            <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, -1)">-</button>
-                            <button class="qty-btn" onclick="changeQty('${id}', ${data.currentQty}, 1)">+</button>
-                            <button onclick="removeItem('${id}')" style="margin-left:10px; color:red; border:none; background:none; cursor:pointer;">報廢</button>
-                        </div>
-                    </div>
-                </div>`;
+                equipmentData.push({ id: item.id, ...item.data() });
             });
-            if (snapshot.empty) listDiv.innerHTML = "目前沒有裝備造冊。";
+            renderTable(); // 資料有變動，重新畫表格
         });
 
-        // --- 新增按鈕 ---
+        // --- 監聽登入狀態變化 ---
+        onAuthStateChanged(auth, (user) => {
+            const authBtn = document.getElementById('authBtn');
+            const adminPanel = document.getElementById('adminPanel');
+
+            if (user) {
+                // 已登入狀態
+                isAdmin = true;
+                authBtn.innerText = "管理員登出";
+                authBtn.classList.replace("btn-outline-primary", "btn-outline-danger");
+                adminPanel.style.display = "block"; // 顯示新增區塊
+            } else {
+                // 未登入狀態
+                isAdmin = false;
+                authBtn.innerText = "管理員登入";
+                authBtn.classList.replace("btn-outline-danger", "btn-outline-primary");
+                adminPanel.style.display = "none";  // 隱藏新增區塊
+            }
+            renderTable(); // 權限改變時，重新畫表格把按鈕藏起來或秀出來
+        });
+
+        // --- 登入/登出按鈕邏輯 ---
+        document.getElementById('authBtn').onclick = () => {
+            if (isAdmin) {
+                signOut(auth);
+            } else {
+                // 這裡為了簡單示範，使用瀏覽器原生的 prompt 讓使用者輸入帳密
+                const email = prompt("請輸入管理員信箱：");
+                if (!email) return;
+                const password = prompt("請輸入密碼：");
+                if (!password) return;
+
+                signInWithEmailAndPassword(auth, email, password)
+                    .then(() => alert("登入成功！已開啟編輯權限。"))
+                    .catch((error) => alert("登入失敗，請檢查帳號密碼。"));
+            }
+        };
+
+        // --- 掛載全域函式 (新增、修改、刪除邏輯不變) ---
+        window.changeQty = async (id, currentQty, change) => {
+            if (!isAdmin) return; // 雙重防線：沒權限就擋掉
+            const newQty = currentQty + change;
+            if (newQty < 0) return;
+            try { await updateDoc(doc(db, "items", id), { currentQty: newQty }); } catch (e) { console.error(e); }
+        };
+
+        window.removeItem = async (id) => {
+            if (!isAdmin) return;
+            if (!confirm("邏輯確認：確定要將這件裝備報廢除役嗎？此操作無法復原。")) return;
+            try { await deleteDoc(doc(db, "items", id)); } catch (e) { console.error(e); }
+        };
+
         document.getElementById('saveBtn').onclick = async () => {
+            if (!isAdmin) return;
             const sn = document.getElementById('itemSN').value;
             const name = document.getElementById('itemName').value;
             const total = parseInt(document.getElementById('itemTotal').value) || 0;
@@ -111,20 +190,14 @@
 
             try {
                 await addDoc(collection(db, "items"), {
-                    sn: sn,
-                    name: name,
-                    totalQty: total,
-                    currentQty: total,
-                    holder: holder,
-                    time: new Date()
+                    sn: sn, name: name, totalQty: total, currentQty: total, holder: holder, time: new Date()
                 });
-                // 清空欄位
                 document.getElementById('itemSN').value = "";
                 document.getElementById('itemName').value = "";
-                document.getElementById('itemTotal').value = "1";
+                document.getElementById('itemTotal').value = "";
                 document.getElementById('itemHolder').value = "";
             } catch (e) { alert("儲存失敗"); }
         };
-        </script>
+    </script>
 </body>
 </html>
