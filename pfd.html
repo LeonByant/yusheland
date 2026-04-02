@@ -221,6 +221,19 @@
         </div>
     </div>
 
+    /*尾端*/
+    <footer class="mt-5 py-4 text-center text-secondary" style="border-top: 1px dashed #cbd5e1;">
+        <div class="container">
+            <small class="fw-medium">
+                &copy;
+                <script>document.write(new Date().getFullYear())</script> 義消裝備風險管理系統. All Rights Reserved.<br>
+                <span class="opacity-75">
+                    <i class="bi bi-code-slash mx-1"></i> Designed & Developed by 梁維軒 (Vincent) | 雨社山下
+                </span>
+            </small>
+        </div>
+    </footer>
+
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
@@ -360,27 +373,27 @@
                 }
 
                 const actionButtons = isAdmin ? `
-                        <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="openEditModal('${data.id}')"><i class="bi bi-pencil-square"></i></button>
-                        <button class="btn btn-sm btn-outline-danger fw-bold ms-1 shadow-sm" onclick="deleteItem('${data.id}', '${data.sn}')"><i class="bi bi-trash3"></i></button>
-                    ` : "";
+                                <button class="btn btn-sm btn-outline-secondary fw-bold shadow-sm" onclick="openEditModal('${data.id}')"><i class="bi bi-pencil-square"></i></button>
+                                <button class="btn btn-sm btn-outline-danger fw-bold ms-1 shadow-sm" onclick="deleteItem('${data.id}', '${data.sn}')"><i class="bi bi-trash3"></i></button>
+                            ` : "";
 
                 const statusBadgeClass = data.status === '隊上' ? 'badge-team' : 'badge-personal';
 
                 tbody.innerHTML += `
-                        <tr class="${rowClass}">
-                            <td class="fw-bold text-secondary text-nowrap font-monospace">${data.sn}</td>
-                            <td class="fw-bold text-dark">
-                                ${data.name}
-                                ${data.note ? `<br><small class="text-muted fw-normal"><i class="bi bi-info-circle me-1"></i>${data.note}</small>` : ''}
-                            </td>
-                            <td class="text-nowrap">
-                                <span class="badge ${statusBadgeClass}">${data.status}</span>
-                                <span class="ms-2 fw-medium text-secondary">${data.holder || '-'}</span>
-                            </td>
-                            <td class="text-nowrap">${expiryTag}${warrantyTag}</td>
-                            ${isAdmin ? `<td class="text-nowrap">${actionButtons}</td>` : ""}
-                        </tr>
-                    `;
+                                <tr class="${rowClass}">
+                                    <td class="fw-bold text-secondary text-nowrap font-monospace">${data.sn}</td>
+                                    <td class="fw-bold text-dark">
+                                        ${data.name}
+                                        ${data.note ? `<br><small class="text-muted fw-normal"><i class="bi bi-info-circle me-1"></i>${data.note}</small>` : ''}
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <span class="badge ${statusBadgeClass}">${data.status}</span>
+                                        <span class="ms-2 fw-medium text-secondary">${data.holder || '-'}</span>
+                                    </td>
+                                    <td class="text-nowrap">${expiryTag}${warrantyTag}</td>
+                                    ${isAdmin ? `<td class="text-nowrap">${actionButtons}</td>` : ""}
+                                </tr>
+                            `;
             });
             if (equipmentData.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="py-5 text-muted fw-bold"><i class="bi bi-inbox fs-4 d-block mb-2"></i>資料庫目前無任何裝備紀錄</td></tr>`;
         }
@@ -456,5 +469,8 @@
             if (input === sn) await deleteDoc(doc(db, "items", id));
         };
     </script>
+
+
+
 </body>
 </html>
